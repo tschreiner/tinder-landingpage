@@ -164,6 +164,7 @@ const state = {
 
 const WHATSAPP_NUMBER = "491706873202";
 const TRACKING_ID = "G-5YLD0LB28R";
+const VISIT_NOTIFY_KEY = "visit_notified";
 let lastTrackedView = "";
 let hasTrackedQuizStart = false;
 let hasTrackedCompletion = false;
@@ -232,6 +233,25 @@ function trackEvent(eventName, params = {}) {
     send_to: TRACKING_ID,
     ...params
   });
+}
+
+function notifyVisit() {
+  try {
+    if (sessionStorage.getItem(VISIT_NOTIFY_KEY)) return;
+    sessionStorage.setItem(VISIT_NOTIFY_KEY, "1");
+  } catch {
+    return;
+  }
+
+  fetch("/api/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      path: `${location.pathname}${location.search}`,
+      name: getDisplayName(),
+      referrer: document.referrer || "direkt",
+    }),
+  }).catch(() => {});
 }
 
 function trackView() {
@@ -354,6 +374,53 @@ function renderStep() {
   renderOptions(step);
 }
 
+// #region agent log
+function debugTitleLayout(source) {
+  requestAnimationFrame(() => {
+    const titleStyles = getComputedStyle(titleEl);
+    const cardStyles = getComputedStyle(card);
+    const shell = document.querySelector(".app-shell");
+    const shellStyles = shell ? getComputedStyle(shell) : null;
+    const titleOverflows = titleEl.scrollWidth > titleEl.clientWidth + 1;
+    const titleExceedsCard = titleEl.scrollWidth > card.clientWidth - 1;
+    const payload = {
+      sessionId: "65e5db",
+      location: "script.js:debugTitleLayout",
+      message: "title layout metrics",
+      data: {
+        source,
+        stepIndex: state.currentStep,
+        titleText: titleEl.textContent,
+        titleLength: titleEl.textContent.length,
+        viewportW: window.innerWidth,
+        titleClientW: titleEl.clientWidth,
+        titleScrollW: titleEl.scrollWidth,
+        titleOffsetW: titleEl.offsetWidth,
+        cardClientW: card.clientWidth,
+        cardScrollW: card.scrollWidth,
+        cardOverflow: cardStyles.overflow,
+        shellOverflow: shellStyles?.overflow ?? null,
+        titleFontSize: titleStyles.fontSize,
+        titleLineHeight: titleStyles.lineHeight,
+        titleWhiteSpace: titleStyles.whiteSpace,
+        titleOverflowWrap: titleStyles.overflowWrap,
+        titleWordBreak: titleStyles.wordBreak,
+        titleOverflows,
+        titleExceedsCard
+      },
+      timestamp: Date.now(),
+      runId: "post-fix",
+      hypothesisId: titleOverflows ? "A,B,C" : titleExceedsCard ? "D,E" : "all"
+    };
+    fetch("http://127.0.0.1:7732/ingest/fafc9e3b-538a-45cd-b1d5-afb48c72a262", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "65e5db" },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
+  });
+}
+// #endregion
+
 function render() {
   card.classList.remove("fade-in");
   void card.offsetWidth;
@@ -365,11 +432,13 @@ function render() {
   if (state.currentStep >= steps.length) {
     renderResult();
     trackView();
+    debugTitleLayout("render-result");
     return;
   }
 
   renderStep();
   trackView();
+  debugTitleLayout("render-step");
 }
 
 function openResultWhatsApp() {
@@ -436,4 +505,5 @@ function resetFlow() {
 
 primaryButton.addEventListener("click", goToNextStep);
 
+notifyVisit();
 render();

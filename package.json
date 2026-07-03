@@ -2,7 +2,9 @@
   "name": "tinder-landingpage-alternative",
   "private": true,
   "scripts": {
-    "dev": "wrangler pages dev ."
+    "dev": "wrangler pages dev .",
+    "deploy:timeout-worker": "wrangler deploy -c workers/wrangler.toml",
+    "test:session-timeout": "node workers/test-session-timeout.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

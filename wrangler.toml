@@ -1,0 +1,13 @@
+name = "eddydate-com"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "."
+
+# KV fuer Besuchszaehler (optional, aber empfohlen):
+# 1. npx wrangler kv namespace create VISIT_COUNTER
+# 2. id unten eintragen
+# 3. In Cloudflare Pages: Settings -> Functions -> KV namespace bindings
+#    Variable name: VISIT_COUNTER
+#
+# [[kv_namespaces]]
+# binding = "VISIT_COUNTER"
+# id = "DEINE_KV_NAMESPACE_ID"

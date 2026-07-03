@@ -1,2 +1,4 @@
 .dev.vars
+node_modules/
+.wrangler/
 .cursor/debug-65e5db.log

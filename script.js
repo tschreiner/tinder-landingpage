@@ -164,10 +164,16 @@ const state = {
 
 const WHATSAPP_NUMBER = "491706873202";
 const TRACKING_ID = "G-5YLD0LB28R";
-const VISIT_NOTIFY_KEY = "visit_notified";
+const STREAM_MESSAGE_ID_KEY = "telegram_stream_message_id";
+const STREAM_EVENTS_KEY = "telegram_stream_events";
+const STREAM_FINISHED_KEY = "telegram_stream_finished";
 let lastTrackedView = "";
 let hasTrackedQuizStart = false;
 let hasTrackedCompletion = false;
+let streamEvents = [];
+let streamMessageId = null;
+let streamFinished = false;
+let streamUpdateQueue = Promise.resolve();
 
 const titleEl = document.getElementById("title");
 const eyebrowEl = document.getElementById("eyebrow");
@@ -226,7 +232,9 @@ function getScoreTotals() {
   );
 }
 
-function trackEvent(eventName, params = {}) {
+function trackEvent(eventName, params = {}, streamOptions = {}) {
+  streamNotify(eventName, params, streamOptions);
+
   if (typeof window.gtag !== "function") return;
 
   window.gtag("event", eventName, {
@@ -235,23 +243,74 @@ function trackEvent(eventName, params = {}) {
   });
 }
 
-function notifyVisit() {
+function loadStreamState() {
   try {
-    if (sessionStorage.getItem(VISIT_NOTIFY_KEY)) return;
-    sessionStorage.setItem(VISIT_NOTIFY_KEY, "1");
+    streamMessageId = sessionStorage.getItem(STREAM_MESSAGE_ID_KEY);
+    const storedEvents = sessionStorage.getItem(STREAM_EVENTS_KEY);
+    streamEvents = storedEvents ? JSON.parse(storedEvents) : [];
+    streamFinished = sessionStorage.getItem(STREAM_FINISHED_KEY) === "1";
   } catch {
-    return;
+    streamEvents = [];
+    streamFinished = false;
   }
+}
 
-  fetch("/api/notify", {
+function saveStreamState() {
+  try {
+    if (streamMessageId) {
+      sessionStorage.setItem(STREAM_MESSAGE_ID_KEY, streamMessageId);
+    }
+    sessionStorage.setItem(STREAM_EVENTS_KEY, JSON.stringify(streamEvents));
+    if (streamFinished) {
+      sessionStorage.setItem(STREAM_FINISHED_KEY, "1");
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function queueStreamUpdate() {
+  streamUpdateQueue = streamUpdateQueue.then(() => sendStreamUpdate()).catch(() => {});
+}
+
+async function sendStreamUpdate() {
+  const response = await fetch("/api/notify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      messageId: streamMessageId ? Number(streamMessageId) : undefined,
       path: `${location.pathname}${location.search}`,
       name: getDisplayName(),
       referrer: document.referrer || "direkt",
-    }),
-  }).catch(() => {});
+      events: streamEvents,
+      finished: streamFinished
+    })
+  });
+
+  if (!response.ok) return;
+
+  const data = await response.json().catch(() => null);
+  if (data?.messageId && !streamMessageId) {
+    streamMessageId = String(data.messageId);
+    saveStreamState();
+  }
+}
+
+function streamNotify(eventName, detail = {}, options = {}) {
+  if (streamFinished) return;
+
+  streamEvents.push({
+    t: new Date().toISOString(),
+    event: eventName,
+    ...detail
+  });
+
+  if (options.finished) {
+    streamFinished = true;
+  }
+
+  saveStreamState();
+  queueStreamUpdate();
 }
 
 function trackView() {
@@ -451,7 +510,7 @@ function openResultWhatsApp() {
     result_key: state.resultKey,
     destination: "whatsapp",
     phone_suffix: WHATSAPP_NUMBER.slice(-4)
-  });
+  }, { finished: true });
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -493,6 +552,9 @@ function goToNextStep() {
 }
 
 function resetFlow() {
+  trackEvent("quiz_reset", {
+    previous_result: state.resultKey
+  });
   state.currentStep = 0;
   state.answers = [];
   state.selectedOption = null;
@@ -505,5 +567,10 @@ function resetFlow() {
 
 primaryButton.addEventListener("click", goToNextStep);
 
-notifyVisit();
+loadStreamState();
+if (!streamFinished) {
+  streamNotify("page_view", {
+    referrer: document.referrer || "direkt"
+  });
+}
 render();

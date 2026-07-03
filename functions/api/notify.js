@@ -5,16 +5,21 @@ const ALLOWED_HOSTS = new Set([
   "localhost",
 ]);
 
+const RESULT_LABELS = {
+  green: "Green Flag Deluxe",
+  chaos: "Charmantes Problem",
+  disaster: "Certified Disaster",
+  rejection: "Game Over",
+};
+
 const EVENT_LABELS = {
-  page_view: "Seite geoeffnet",
-  intro_view: "Intro angezeigt",
+  page_view: "Seite geöffnet",
   quiz_started: "Quiz gestartet",
   intro_cta_click: "Intro-Button geklickt",
-  question_view: "Frage angezeigt",
-  answer_selected: "Antwort gewaehlt",
+  answer_selected: "Antwort gewählt",
   quiz_completed: "Quiz abgeschlossen",
   result_view: "Ergebnis angezeigt",
-  whatsapp_cta_click: "WhatsApp-Button geklickt",
+  whatsapp_cta_click: "WhatsApp geklickt",
   quiz_reset: "Quiz neu gestartet",
 };
 
@@ -65,13 +70,9 @@ function getRequestMetadata(request) {
   const ip = getClientIp(request);
   const userAgent = request.headers.get("User-Agent") || "unbekannt";
 
-  const geoParts = [cf.city, cf.region, cf.country].filter(Boolean);
-  const geo = geoParts.length > 0 ? geoParts.join(", ") : "unbekannt";
-
   return {
     ip,
     userAgent,
-    geo,
     country: cf.country || null,
     region: cf.region || null,
     city: cf.city || null,
@@ -113,6 +114,11 @@ async function getVisitCount(env, ip) {
   return { total, ip: ipCount };
 }
 
+function escapeHtml(text) {
+  if (typeof text !== "string") return "";
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function sanitizeText(value, maxLength = 120) {
   if (typeof value !== "string") return "";
   const trimmed = value.replace(/\s+/g, " ").trim();
@@ -120,119 +126,182 @@ function sanitizeText(value, maxLength = 120) {
   return trimmed.length > maxLength ? `${trimmed.slice(0, maxLength - 1)}…` : trimmed;
 }
 
-function formatEventDetail(event) {
-  const details = [];
+function shortenUserAgent(userAgent) {
+  if (!userAgent || userAgent === "unbekannt") return "unbekannt";
 
-  if (event.referrer) {
-    details.push(`Referrer: ${sanitizeText(event.referrer, 80)}`);
-  }
+  let browser = "Browser";
+  let os = "OS";
 
-  if (typeof event.question_index === "number") {
-    details.push(`Frage ${event.question_index}`);
-  }
+  if (userAgent.includes("Edg/")) browser = "Edge";
+  else if (userAgent.includes("Firefox/")) browser = "Firefox";
+  else if (userAgent.includes("Chrome/")) browser = "Chrome";
+  else if (userAgent.includes("Safari/")) browser = "Safari";
 
-  if (event.question_title) {
-    details.push(`"${sanitizeText(event.question_title, 80)}"`);
-  }
+  if (userAgent.includes("Windows")) os = "Win";
+  else if (userAgent.includes("Mac OS")) os = "Mac";
+  else if (userAgent.includes("Android")) os = "Android";
+  else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
+  else if (userAgent.includes("Linux")) os = "Linux";
 
-  if (event.answer_text) {
-    details.push(`Antwort: "${sanitizeText(event.answer_text, 100)}"`);
-  }
-
-  if (event.result_key) {
-    details.push(`Ergebnis: ${event.result_key}`);
-  }
-
-  if (typeof event.answered_questions === "number") {
-    details.push(`${event.answered_questions} Fragen beantwortet`);
-  }
-
-  if (event.cta_label) {
-    details.push(`CTA: "${sanitizeText(event.cta_label, 80)}"`);
-  }
-
-  if (event.destination) {
-    details.push(`Ziel: ${event.destination}`);
-  }
-
-  return details.join(" · ");
+  return sanitizeText(`${browser}/${os}`, 60);
 }
 
-function formatEventLine(event) {
-  const time = typeof event.t === "string" ? event.t.slice(11, 19) : "??:??:??";
-  const label = EVENT_LABELS[event.event] || event.event || "event";
-  const detail = formatEventDetail(event);
-
-  return detail ? `• ${time} ${label} — ${detail}` : `• ${time} ${label}`;
+function formatTime(event) {
+  return typeof event.t === "string" ? event.t.slice(11, 19) : "??:??:??";
 }
 
-function formatVisitCount(visits) {
-  if (visits.total === null || visits.ip === null) {
-    return "nicht verfuegbar (KV nicht gebunden)";
+function shortenQuestionTitle(title) {
+  if (!title) return "Frage";
+
+  const sanitized = sanitizeText(title, 80);
+  const beforeQuestion = sanitized.split("?")[0].trim();
+
+  if (beforeQuestion.length > 0 && beforeQuestion.length < sanitized.length) {
+    return sanitizeText(beforeQuestion, 40);
   }
 
-  return `${visits.total} gesamt · ${visits.ip} von dieser IP`;
+  return sanitizeText(sanitized, 40);
 }
 
-function buildMessage({
-  name,
-  path,
-  referrer,
-  metadata,
-  visits,
-  events,
-  finished,
-  isNewSession,
-}) {
-  const header = finished ? "Session abgeschlossen" : "Live-Session";
-  const lines = [
-    header,
-    "",
-    `Name: ${name}`,
-    `Pfad: ${path}`,
-    `Referrer: ${referrer}`,
-    "",
-    "Metadaten",
-    `IP: ${metadata.ip}`,
-    `Geo: ${metadata.geo}`,
-    `Zeitzone: ${metadata.timezone || "unbekannt"}`,
-    `Land: ${metadata.country || "unbekannt"}`,
-    `Region: ${metadata.region || "unbekannt"}`,
-    `Stadt: ${metadata.city || "unbekannt"}`,
-    `Koordinaten: ${
-      metadata.latitude != null && metadata.longitude != null
-        ? `${metadata.latitude}, ${metadata.longitude}`
-        : "unbekannt"
-    }`,
-    `Edge Colo: ${metadata.colo || "unbekannt"}`,
-    `User-Agent: ${sanitizeText(metadata.userAgent, 180)}`,
-    `Besuche: ${formatVisitCount(visits)}`,
-    isNewSession ? "Besuchszaehler: +1 (neue Session)" : "",
-    "",
-    "Timeline",
-  ].filter((line, index) => line !== "" || index < 3);
+function compressEvents(events) {
+  if (!Array.isArray(events)) return [];
 
-  const eventLines = Array.isArray(events) ? events.map(formatEventLine) : [];
-  let message = [...lines, ...eventLines].join("\n");
+  const hasResultView = events.some((event) => event.event === "result_view");
+
+  return events.filter((event, index, allEvents) => {
+    const type = event.event;
+
+    if (type === "intro_view" || type === "question_view") return false;
+    if (type === "quiz_completed" && hasResultView) return false;
+
+    if (type === "intro_cta_click" && allEvents[index - 1]?.event === "quiz_started") {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function formatMetadataBlock(metadata, visits) {
+  const locationParts = [metadata.city, metadata.region].filter(Boolean);
+  let locationLine = locationParts.length > 0 ? locationParts.join(", ") : "unbekannt";
+
+  if (metadata.country) {
+    locationLine += ` · ${metadata.country}`;
+  }
+
+  if (metadata.timezone) {
+    locationLine += ` · ${metadata.timezone}`;
+  }
+
+  if (metadata.latitude != null && metadata.longitude != null) {
+    locationLine += ` · ${metadata.latitude}, ${metadata.longitude}`;
+  }
+
+  const ipLine = `IP: ${metadata.ip}`;
+  const coloPart = metadata.colo ? ` · Colo: ${metadata.colo}` : "";
+  const uaShort = shortenUserAgent(metadata.userAgent);
+
+  let visitsText = "—";
+  if (visits.total !== null && visits.ip !== null) {
+    visitsText = `${visits.total} gesamt (${visits.ip}× diese IP)`;
+  }
+
+  return [
+    escapeHtml(locationLine),
+    `${escapeHtml(ipLine)}${escapeHtml(coloPart)}`,
+    `${escapeHtml(uaShort)} · Besuche: ${escapeHtml(visitsText)}`,
+  ];
+}
+
+function formatTimeline(events) {
+  const lines = [];
+
+  for (const event of compressEvents(events)) {
+    const time = formatTime(event);
+
+    switch (event.event) {
+      case "page_view": {
+        const ref =
+          event.referrer && event.referrer !== "direkt"
+            ? ` · ${escapeHtml(sanitizeText(event.referrer, 60))}`
+            : "";
+        lines.push(`${time}  Seite geöffnet${ref}`);
+        break;
+      }
+      case "quiz_started":
+        lines.push(`${time}  Quiz gestartet`);
+        break;
+      case "answer_selected": {
+        const questionNumber = event.question_index ?? "?";
+        const title = escapeHtml(shortenQuestionTitle(event.question_title));
+        const answer = escapeHtml(sanitizeText(event.answer_text, 100));
+
+        lines.push(`${time}  <b>F${questionNumber}</b> · ${title}`);
+        if (answer) {
+          lines.push(`       ↳ ${answer}`);
+        }
+        break;
+      }
+      case "result_view": {
+        const label = RESULT_LABELS[event.result_key] || event.result_key || "unbekannt";
+        lines.push(`${time}  Ergebnis: ${escapeHtml(label)}`);
+        break;
+      }
+      case "whatsapp_cta_click":
+        lines.push(`${time}  WhatsApp geklickt ✓`);
+        break;
+      case "quiz_reset":
+        lines.push(`${time}  Quiz neu gestartet`);
+        break;
+      default: {
+        const label = EVENT_LABELS[event.event] || event.event || "Event";
+        lines.push(`${time}  ${escapeHtml(label)}`);
+      }
+    }
+  }
+
+  return lines;
+}
+
+function buildMessage({ name, path, referrer, metadata, visits, events, finished }) {
+  const status = finished ? "Abgeschlossen" : "Live";
+  const safeName = escapeHtml(name);
+  const safePath = escapeHtml(path);
+  const safeReferrer = escapeHtml(referrer);
+
+  const staticParts = [
+    "<b>Neuer Besuch auf eddydate.com</b>",
+    `<i>${status}</i> · ${safeName} · ${safePath}`,
+    "",
+    "<b>Besucher</b>",
+    `Name: ${safeName} · Referrer: ${safeReferrer}`,
+    "",
+    "<b>Standort &amp; Technik</b>",
+    ...formatMetadataBlock(metadata, visits),
+    "",
+    "<b>Ablauf</b>",
+  ];
+
+  const timelineLines = formatTimeline(events);
+  let message = [...staticParts, ...timelineLines].join("\n");
 
   if (message.length > TELEGRAM_TEXT_LIMIT) {
-    const staticBlock = lines.join("\n");
-    const reserved = staticBlock.length + 40;
-    const trimmedEvents = [];
+    const staticBlock = staticParts.join("\n");
+    const trimmedTimeline = [];
 
-    for (let index = eventLines.length - 1; index >= 0; index -= 1) {
-      const candidate = [...trimmedEvents];
-      candidate.unshift(eventLines[index]);
-      const candidateMessage = `${staticBlock}\n${candidate.join("\n")}\n…(aeltere Events gekuerzt)`;
+    for (let index = timelineLines.length - 1; index >= 0; index -= 1) {
+      const candidate = [timelineLines[index], ...trimmedTimeline];
+      const candidateMessage = `${staticBlock}\n${candidate.join("\n")}\n<i>…(ältere Events gekürzt)</i>`;
 
       if (candidateMessage.length <= TELEGRAM_TEXT_LIMIT) {
-        trimmedEvents.unshift(eventLines[index]);
+        trimmedTimeline.unshift(timelineLines[index]);
       } else {
         break;
       }
     }
 
-    message = `${staticBlock}\n${trimmedEvents.join("\n")}\n…(aeltere Events gekuerzt)`;
+    message = `${staticBlock}\n${trimmedTimeline.join("\n")}\n<i>…(ältere Events gekürzt)</i>`;
   }
 
   return message.slice(0, TELEGRAM_TEXT_LIMIT);
@@ -242,7 +311,11 @@ async function callTelegram(env, method, payload) {
   const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+      ...payload,
+    }),
   });
 
   const data = await response.json().catch(() => ({}));
@@ -295,7 +368,6 @@ export async function onRequestPost(context) {
     visits,
     events,
     finished,
-    isNewSession,
   });
 
   try {
@@ -304,7 +376,6 @@ export async function onRequestPost(context) {
         chat_id: chatId,
         message_id: messageId,
         text: message,
-        disable_web_page_preview: true,
       });
 
       return new Response(JSON.stringify({ ok: true, messageId }), {
@@ -315,7 +386,6 @@ export async function onRequestPost(context) {
     const data = await callTelegram(env, "sendMessage", {
       chat_id: chatId,
       text: message,
-      disable_web_page_preview: true,
     });
 
     return new Response(JSON.stringify({ ok: true, messageId: data.result.message_id }), {

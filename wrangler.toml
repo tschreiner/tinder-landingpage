@@ -2,6 +2,10 @@ name = "eddydate-com"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "."
 
+# Secrets werden NICHT hier gespeichert, nur deklariert (Werte via Dashboard oder wrangler pages secret put):
+[secrets]
+required = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]
+
 # KV fuer Live-Session-Timeout (erforderlich fuer automatisches Abschliessen):
 # 1. npx wrangler kv namespace create SESSIONS
 # 2. id unten eintragen

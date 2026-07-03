@@ -157,7 +157,14 @@ export async function onRequestPost(context) {
   const chatId = env.TELEGRAM_CHAT_ID;
 
   if (!token || !chatId) {
-    return new Response("Not configured", { status: 500 });
+    return new Response(
+      JSON.stringify({
+        error: "not_configured",
+        missing: { token: !token, chatId: !chatId },
+        hint: "Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID as Pages Secrets, then redeploy. Check /api/health for details.",
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   const body = await request.json().catch(() => ({}));

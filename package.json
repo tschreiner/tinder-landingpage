@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "wrangler pages dev .",
+    "deploy": "npm run deploy:pages && npm run deploy:timeout-worker",
+    "deploy:pages": "wrangler pages deploy . --project-name=eddydate-com",
     "deploy:timeout-worker": "wrangler deploy -c workers/wrangler.toml",
     "test:session-timeout": "node workers/test-session-timeout.mjs"
   },

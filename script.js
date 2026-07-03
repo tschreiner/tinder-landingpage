@@ -2,9 +2,9 @@ const steps = [
   {
     type: "intro",
     badge: "💘",
-    eyebrow: "Persoenlichkeitstest fuer Matches",
+    eyebrow: "Persönlichkeitstest für Matches",
     title: (name) => `Oh hi ${name}.`,
-    copy: "Ich brauche vor dem Weiterflirten eine sehr wissenschaftliche Einschaetzung: Bist du eher Green Flag, charmantes Problem oder emotionaler Kabelbrand mit guten Absichten?",
+    copy: "Ich brauche vor dem Weiterflirten eine sehr wissenschaftliche Einschätzung: Bist du eher Green Flag, charmantes Problem oder emotionaler Kabelbrand mit guten Absichten?",
     primaryLabel: "Okay, ich mach den Test"
   },
   {
@@ -12,14 +12,14 @@ const steps = [
     badge: "🎙️",
     eyebrow: "Runde 1",
     title: "Wie antwortest du auf Sprachnachrichten?",
-    copy: "Bitte ehrlich sein. Oder zumindest kreativ beim Luegen.",
+    copy: "Bitte ehrlich sein. Oder zumindest kreativ beim Lügen.",
     options: [
       {
-        text: "Sofort. Ich bin verbal leider sehr verfuegbar.",
+        text: "Sofort. Ich bin verbal leider sehr verfügbar.",
         scores: { green: 3, chaos: 0, disaster: 0 }
       },
       {
-        text: "Ich hoere sie auf 1.5x und tue danach emotional beschaeftigt.",
+        text: "Ich höre sie auf 1.5x und tue danach emotional beschäftigt.",
         scores: { green: 1, chaos: 2, disaster: 0 }
       },
       {
@@ -37,11 +37,11 @@ const steps = [
     type: "question",
     badge: "🫠",
     eyebrow: "Runde 2",
-    title: "Was ist dein groesstes Dating-Laster?",
-    copy: "Keine Sorge. Ich sammle Red Flags nur aesthetisch.",
+    title: "Was ist dein größtes Dating-Laster?",
+    copy: "Keine Sorge. Ich sammle Red Flags nur ästhetisch.",
     options: [
       {
-        text: "Ich komme immer puenktlich. Ja, ich weiss. Unertraeglich vorbildlich.",
+        text: "Ich komme immer pünktlich. Ja, ich weiß. Unerträglich vorbildlich.",
         scores: { green: 3, chaos: 0, disaster: 0 }
       },
       {
@@ -49,7 +49,7 @@ const steps = [
         scores: { green: 0, chaos: 3, disaster: 1 }
       },
       {
-        text: "Ich flirte besser in Textform als in Echtzeit. Live-Version folgt spaeter.",
+        text: "Ich flirte besser in Textform als in Echtzeit. Live-Version folgt später.",
         scores: { green: 1, chaos: 2, disaster: 0 }
       },
       {
@@ -67,7 +67,7 @@ const steps = [
     copy: "Hier trennt sich Green Flag von cineastischem Ausnahmezustand.",
     options: [
       {
-        text: "Gemeinsam Kaffee holen, draussen sitzen, gesittet lachen.",
+        text: "Gemeinsam Kaffee holen, draußen sitzen, gesittet lachen.",
         scores: { green: 3, chaos: 0, disaster: 0 }
       },
       {
@@ -75,11 +75,11 @@ const steps = [
         scores: { green: 1, chaos: 3, disaster: 0 }
       },
       {
-        text: "Irgendwer sagt 'nur kurz' und ploetzlich ist es 4 Uhr morgens.",
+        text: "Irgendwer sagt 'nur kurz' und plötzlich ist es 4 Uhr morgens.",
         scores: { green: 0, chaos: 2, disaster: 2 }
       },
       {
-        text: "Ich will eine Romanze, die sich leicht nach schlechter Entscheidung anfuehlt.",
+        text: "Ich will eine Romanze, die sich leicht nach schlechter Entscheidung anfühlt.",
         scores: { green: 0, chaos: 1, disaster: 3 }
       }
     ],
@@ -90,18 +90,18 @@ const steps = [
     badge: "⏳",
     eyebrow: "Finale Frage",
     title: "Wie ehrlich bist du bei 'Bin gleich da'?",
-    copy: "Dies hier entscheidet ueber deinen sehr offiziellen Beziehungs-TUEV.",
+    copy: "Dies hier entscheidet über deinen sehr offiziellen Beziehungs-TÜV.",
     options: [
       {
-        text: "Wenn ich das sage, bin ich praktisch schon vor der Tuer.",
+        text: "Wenn ich das sage, bin ich praktisch schon vor der Tür.",
         scores: { green: 3, chaos: 0, disaster: 0 }
       },
       {
-        text: "Das ist eine poetische Schaetzung, keine Uhrzeit.",
+        text: "Das ist eine poetische Schätzung, keine Uhrzeit.",
         scores: { green: 0, chaos: 3, disaster: 1 }
       },
       {
-        text: "Es heisst nur, dass ich mental darueber nachdenke, loszugehen.",
+        text: "Es heißt nur, dass ich mental darüber nachdenke, loszugehen.",
         scores: { green: 0, chaos: 1, disaster: 3 }
       },
       {
@@ -118,21 +118,21 @@ const outcomes = {
     badge: "✨",
     eyebrow: "Ergebnis",
     title: "Green Flag Deluxe",
-    copy: "Du wirkst verdammt angenehm. Fast verdaechtig angenehm. Mit dir kann man vermutlich wirklich reden, lachen und puenktlich irgendwo auftauchen. Das ist in dieser Wirtschaft selten.",
-    meta: "Diagnose: sicher flirtbar, minimal gefaehrlich, ueberdurchschnittlich date-tauglich.",
+    copy: "Du wirkst verdammt angenehm. Fast verdächtig angenehm. Mit dir kann man vermutlich wirklich reden, lachen und pünktlich irgendwo auftauchen. Das ist in dieser Wirtschaft selten.",
+    meta: "Diagnose: sicher flirtbar, minimal gefährlich, überdurchschnittlich date-tauglich.",
     primaryLabel: "Auf WhatsApp schreiben",
     secondaryLabel: "Nochmal spielen und etwas toxischer antworten",
-    shareText: "Hi, ich habe gerade den Persoenlichkeitstest gemacht. Ergebnis: Green Flag Deluxe. Ich glaube, wir sollten das bei einem Kaffee ueberpruefen 😄"
+    shareText: "Hi, ich habe gerade den Persönlichkeitstest gemacht. Ergebnis: Green Flag Deluxe. Ich glaube, wir sollten das bei einem Kaffee überprüfen 😄"
   },
   chaos: {
     badge: "🔥",
     eyebrow: "Ergebnis",
     title: "Charmantes Problem",
-    copy: "Du hast Energie von 'koennte mein Lieblingsmensch werden' gemischt mit 'ich sollte vielleicht einen Helm tragen'. Genau die Art Risiko, die noch Spass macht.",
+    copy: "Du hast Energie von 'könnte mein Lieblingsmensch werden' gemischt mit 'ich sollte vielleicht einen Helm tragen'. Genau die Art Risiko, die noch Spaß macht.",
     meta: "Diagnose: leicht chaotisch, sehr unterhaltsam, mit hohem Wiedersehen-Potenzial.",
     primaryLabel: "Auf WhatsApp schreiben",
     secondaryLabel: "Test wiederholen und unschuldiger wirken",
-    shareText: "Hi, ich habe gerade den Persoenlichkeitstest gemacht. Ergebnis: Charmantes Problem. Klingt riskant genug, um spannend zu sein 😄"
+    shareText: "Hi, ich habe gerade den Persönlichkeitstest gemacht. Ergebnis: Charmantes Problem. Klingt riskant genug, um spannend zu sein 😄"
   },
   disaster: {
     badge: "🚨",
@@ -142,14 +142,14 @@ const outcomes = {
     meta: "Diagnose: emotional leicht brennbar, trotzdem schwer ignorierbar.",
     primaryLabel: "Auf WhatsApp schreiben",
     secondaryLabel: "Nochmal spielen und diesmal weniger ehrlich sein",
-    shareText: "Hi, ich habe gerade den Persoenlichkeitstest gemacht. Ergebnis: Certified Disaster mit Potenzial. Ich bin leicht besorgt, aber trotzdem interessiert 😄"
+    shareText: "Hi, ich habe gerade den Persönlichkeitstest gemacht. Ergebnis: Certified Disaster mit Potenzial. Ich bin leicht besorgt, aber trotzdem interessiert 😄"
   },
   rejection: {
     badge: "💔",
     eyebrow: "Bonus-Ende",
     title: "Game Over",
-    copy: "Zu viel Charme, zu wenig TUEV. Ich respektiere das Chaos aus sicherer Entfernung.",
-    meta: "Abschlussnotiz: Fenster schliessen, kurz reflektieren, dann vielleicht trotzdem nochmal schreiben.",
+    copy: "Zu viel Charme, zu wenig TÜV. Ich respektiere das Chaos aus sicherer Entfernung.",
+    meta: "Abschlussnotiz: Fenster schließen, kurz reflektieren, dann vielleicht trotzdem nochmal schreiben.",
     primaryLabel: "Okay, gib mir eine zweite Chance",
     secondaryLabel: "Nochmal spielen"
   }

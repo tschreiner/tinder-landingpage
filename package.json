@@ -1,6 +1,7 @@
 {
   "name": "tinder-landingpage-alternative",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler pages dev .",
     "deploy": "npm run deploy:pages && npm run deploy:timeout-worker",

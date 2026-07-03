@@ -252,8 +252,7 @@ h1 {
   padding-top: 1.8rem;
 }
 
-.primary-button,
-.secondary-button {
+.primary-button {
   width: 100%;
   display: inline-flex;
   align-items: center;
@@ -268,9 +267,6 @@ h1 {
     background 140ms ease,
     color 140ms ease,
     box-shadow 140ms ease;
-}
-
-.primary-button {
   background: linear-gradient(180deg, rgba(255, 94, 177, 0.38), rgba(176, 40, 105, 0.3));
   color: #ffd7ef;
   box-shadow:
@@ -278,8 +274,7 @@ h1 {
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.primary-button:hover:not(:disabled),
-.secondary-button:hover {
+.primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
@@ -287,12 +282,6 @@ h1 {
   opacity: 0.34;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-.secondary-button {
-  margin-top: 0.8rem;
-  background: rgba(255, 255, 255, 0.055);
-  color: var(--muted);
 }
 
 .primary-button.is-whatsapp {
@@ -480,8 +469,7 @@ h1 {
     backdrop-filter: blur(10px);
   }
 
-  .primary-button,
-  .secondary-button {
+  .primary-button {
     padding: 0.9rem 1rem;
   }
 

@@ -121,7 +121,6 @@ const outcomes = {
     copy: "Du wirkst verdammt angenehm. Fast verdächtig angenehm. Mit dir kann man vermutlich wirklich reden, lachen und pünktlich irgendwo auftauchen. Das ist in dieser Wirtschaft selten.",
     meta: "Diagnose: sicher flirtbar, minimal gefährlich, überdurchschnittlich date-tauglich.",
     primaryLabel: "Auf WhatsApp schreiben",
-    secondaryLabel: "Nochmal spielen und etwas toxischer antworten",
     shareText: "Hi, ich habe gerade den Persönlichkeitstest gemacht. Ergebnis: Green Flag Deluxe. Ich glaube, wir sollten das bei einem Kaffee überprüfen 😄"
   },
   chaos: {
@@ -131,7 +130,6 @@ const outcomes = {
     copy: "Du hast Energie von 'könnte mein Lieblingsmensch werden' gemischt mit 'ich sollte vielleicht einen Helm tragen'. Genau die Art Risiko, die noch Spaß macht.",
     meta: "Diagnose: leicht chaotisch, sehr unterhaltsam, mit hohem Wiedersehen-Potenzial.",
     primaryLabel: "Auf WhatsApp schreiben",
-    secondaryLabel: "Test wiederholen und unschuldiger wirken",
     shareText: "Hi, ich habe gerade den Persönlichkeitstest gemacht. Ergebnis: Charmantes Problem. Klingt riskant genug, um spannend zu sein 😄"
   },
   disaster: {
@@ -141,7 +139,6 @@ const outcomes = {
     copy: "Du bist nicht unbedingt eine Red Flag. Eher eine ganze Leuchtreklame mit guter Playlist. Das ist objektiv kompliziert, aber leider auch ein bisschen interessant.",
     meta: "Diagnose: emotional leicht brennbar, trotzdem schwer ignorierbar.",
     primaryLabel: "Auf WhatsApp schreiben",
-    secondaryLabel: "Nochmal spielen und diesmal weniger ehrlich sein",
     shareText: "Hi, ich habe gerade den Persönlichkeitstest gemacht. Ergebnis: Certified Disaster mit Potenzial. Ich bin leicht besorgt, aber trotzdem interessiert 😄"
   },
   rejection: {
@@ -150,8 +147,7 @@ const outcomes = {
     title: "Game Over",
     copy: "Zu viel Charme, zu wenig TÜV. Ich respektiere das Chaos aus sicherer Entfernung.",
     meta: "Abschlussnotiz: Fenster schließen, kurz reflektieren, dann vielleicht trotzdem nochmal schreiben.",
-    primaryLabel: "Okay, gib mir eine zweite Chance",
-    secondaryLabel: "Nochmal spielen"
+    primaryLabel: "Okay, gib mir eine zweite Chance"
   }
 };
 
@@ -167,6 +163,8 @@ const TRACKING_ID = "G-5YLD0LB28R";
 const STREAM_MESSAGE_ID_KEY = "telegram_stream_message_id";
 const STREAM_EVENTS_KEY = "telegram_stream_events";
 const STREAM_FINISHED_KEY = "telegram_stream_finished";
+const MAX_DISPLAY_NAME_LENGTH = 40;
+const MAX_STREAM_EVENTS = 120;
 let lastTrackedView = "";
 let hasTrackedQuizStart = false;
 let hasTrackedCompletion = false;
@@ -189,11 +187,20 @@ function getDisplayName() {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get("id")?.trim();
   if (!raw) return "du";
-  return raw
+
+  const displayName = raw
     .split(/[-_\s]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!displayName) return "du";
+
+  return displayName.length > MAX_DISPLAY_NAME_LENGTH
+    ? `${displayName.slice(0, MAX_DISPLAY_NAME_LENGTH - 1)}…`
+    : displayName;
 }
 
 function computeResult() {
@@ -243,15 +250,36 @@ function trackEvent(eventName, params = {}, streamOptions = {}) {
   });
 }
 
+function clearStreamState() {
+  streamEvents = [];
+  streamMessageId = null;
+  streamFinished = false;
+
+  try {
+    sessionStorage.removeItem(STREAM_MESSAGE_ID_KEY);
+    sessionStorage.removeItem(STREAM_EVENTS_KEY);
+    sessionStorage.removeItem(STREAM_FINISHED_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 function loadStreamState() {
   try {
+    const storedFinished = sessionStorage.getItem(STREAM_FINISHED_KEY) === "1";
+
+    if (storedFinished) {
+      clearStreamState();
+      return;
+    }
+
     streamMessageId = sessionStorage.getItem(STREAM_MESSAGE_ID_KEY);
     const storedEvents = sessionStorage.getItem(STREAM_EVENTS_KEY);
-    streamEvents = storedEvents ? JSON.parse(storedEvents) : [];
-    streamFinished = sessionStorage.getItem(STREAM_FINISHED_KEY) === "1";
-  } catch {
-    streamEvents = [];
+    const parsedEvents = storedEvents ? JSON.parse(storedEvents) : [];
+    streamEvents = Array.isArray(parsedEvents) ? parsedEvents.slice(-MAX_STREAM_EVENTS) : [];
     streamFinished = false;
+  } catch {
+    clearStreamState();
   }
 }
 
@@ -259,10 +287,16 @@ function saveStreamState() {
   try {
     if (streamMessageId) {
       sessionStorage.setItem(STREAM_MESSAGE_ID_KEY, streamMessageId);
+    } else {
+      sessionStorage.removeItem(STREAM_MESSAGE_ID_KEY);
     }
-    sessionStorage.setItem(STREAM_EVENTS_KEY, JSON.stringify(streamEvents));
+
+    sessionStorage.setItem(STREAM_EVENTS_KEY, JSON.stringify(streamEvents.slice(-MAX_STREAM_EVENTS)));
+
     if (streamFinished) {
       sessionStorage.setItem(STREAM_FINISHED_KEY, "1");
+    } else {
+      sessionStorage.removeItem(STREAM_FINISHED_KEY);
     }
   } catch {
     // ignore storage errors
@@ -304,6 +338,10 @@ function streamNotify(eventName, detail = {}, options = {}) {
     event: eventName,
     ...detail
   });
+
+  if (streamEvents.length > MAX_STREAM_EVENTS) {
+    streamEvents = streamEvents.slice(-MAX_STREAM_EVENTS);
+  }
 
   if (options.finished) {
     streamFinished = true;
@@ -384,10 +422,15 @@ function renderOptions(step) {
       button.classList.add("is-selected");
     }
 
-    button.innerHTML = `
-      <span class="option-bullet" aria-hidden="true"></span>
-      <span class="option-label">${option.text}</span>
-    `;
+    const bullet = document.createElement("span");
+    bullet.className = "option-bullet";
+    bullet.setAttribute("aria-hidden", "true");
+
+    const label = document.createElement("span");
+    label.className = "option-label";
+    label.textContent = option.text;
+
+    button.append(bullet, label);
 
     button.addEventListener("click", () => {
       state.selectedOption = index;
@@ -412,7 +455,13 @@ function renderResult() {
   eyebrowEl.textContent = result.eyebrow;
   titleEl.textContent = result.title;
   copyEl.textContent = result.copy;
-  optionsEl.innerHTML = `<div class="result-meta">${result.meta}</div>`;
+  optionsEl.innerHTML = "";
+
+  const meta = document.createElement("div");
+  meta.className = "result-meta";
+  meta.textContent = result.meta;
+  optionsEl.appendChild(meta);
+
   primaryButton.textContent = result.primaryLabel;
   primaryButton.disabled = false;
   primaryButton.classList.toggle("is-whatsapp", state.resultKey !== "rejection");
@@ -496,6 +545,11 @@ function goToNextStep() {
 
       render();
     }
+    return;
+  }
+
+  if (state.resultKey === "rejection") {
+    resetFlow();
     return;
   }
 

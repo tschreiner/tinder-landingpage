@@ -43,6 +43,15 @@ async function listAllSessionKeys(kv) {
   return keys;
 }
 
+function parseStoredSession(raw) {
+  try {
+    const session = JSON.parse(raw);
+    return session && typeof session === "object" ? session : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function finalizeTimedOutSessions(env) {
   if (!env.SESSIONS) return { finalized: 0 };
 
@@ -62,17 +71,23 @@ export async function finalizeTimedOutSessions(env) {
       const raw = await env.SESSIONS.get(key);
       if (!raw) continue;
 
-      const session = JSON.parse(raw);
+      const session = parseStoredSession(raw);
+      if (!session || !Number.isFinite(session.messageId)) {
+        await env.SESSIONS.delete(key);
+        continue;
+      }
+
       if (session.finished) {
         await env.SESSIONS.delete(key);
         continue;
       }
 
-      if (now - session.lastActivity < SESSION_TIMEOUT_MS) {
+      const lastActivity = Number.isFinite(session.lastActivity) ? session.lastActivity : 0;
+      if (now - lastActivity < SESSION_TIMEOUT_MS) {
         continue;
       }
 
-      const events = [...(session.events || []), createTimeoutEvent()];
+      const events = [...(Array.isArray(session.events) ? session.events : []), createTimeoutEvent()];
       const message = buildMessage({
         name: session.name,
         path: session.path,

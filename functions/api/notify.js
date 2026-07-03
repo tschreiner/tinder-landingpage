@@ -8,6 +8,12 @@ const ALLOWED_HOSTS = new Set([
   "localhost",
 ]);
 
+const MAX_EVENTS = 120;
+const MAX_NAME_LENGTH = 60;
+const MAX_PATH_LENGTH = 240;
+const MAX_REFERRER_LENGTH = 240;
+const MAX_EVENT_TEXT_LENGTH = 240;
+
 function isAllowedHost(hostname) {
   if (!hostname) return false;
 
@@ -37,7 +43,61 @@ function getRequestHost(request) {
     }
   }
 
-  return null;
+  try {
+    return new URL(request.url).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeString(value, fallback, maxLength) {
+  if (typeof value !== "string") return fallback;
+
+  const sanitized = value.replace(/\s+/g, " ").trim();
+  if (!sanitized) return fallback;
+
+  return sanitized.length > maxLength ? `${sanitized.slice(0, maxLength - 1)}…` : sanitized;
+}
+
+function sanitizeNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function sanitizeEvent(event) {
+  if (!event || typeof event !== "object") return null;
+
+  const type = sanitizeString(event.event, "", 80);
+  if (!type) return null;
+
+  const normalized = {
+    t: sanitizeString(event.t, new Date().toISOString(), 40),
+    event: type,
+  };
+
+  for (const [key, value] of Object.entries(event)) {
+    if (key === "t" || key === "event") continue;
+
+    if (typeof value === "string") {
+      normalized[key] = sanitizeString(value, "", MAX_EVENT_TEXT_LENGTH);
+    } else if (typeof value === "number") {
+      const parsed = sanitizeNumber(value);
+      if (parsed !== undefined) normalized[key] = parsed;
+    } else if (typeof value === "boolean") {
+      normalized[key] = value;
+    }
+  }
+
+  return normalized;
+}
+
+function sanitizeEvents(events) {
+  if (!Array.isArray(events)) return [];
+
+  return events
+    .slice(-MAX_EVENTS)
+    .map(sanitizeEvent)
+    .filter(Boolean);
 }
 
 function parseClientIpFromCf(clientIp) {
@@ -168,11 +228,10 @@ export async function onRequestPost(context) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const name = typeof body.name === "string" && body.name.trim() ? body.name.trim() : "unbekannt";
-  const path = typeof body.path === "string" && body.path.trim() ? body.path.trim() : "/";
-  const referrer =
-    typeof body.referrer === "string" && body.referrer.trim() ? body.referrer.trim() : "direkt";
-  const events = Array.isArray(body.events) ? body.events : [];
+  const name = sanitizeString(body.name, "unbekannt", MAX_NAME_LENGTH);
+  const path = sanitizeString(body.path, "/", MAX_PATH_LENGTH);
+  const referrer = sanitizeString(body.referrer, "direkt", MAX_REFERRER_LENGTH);
+  const events = sanitizeEvents(body.events);
   const finished = body.finished === true;
   const messageId = Number.parseInt(body.messageId, 10);
 
@@ -231,8 +290,12 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({ ok: true, messageId: newMessageId }), {
       headers: { "Content-Type": "application/json" },
     });
-  } catch {
-    return new Response("Telegram error", { status: 502 });
+  } catch (error) {
+    console.error("Telegram notification failed:", error);
+    return new Response(JSON.stringify({ error: "telegram_error" }), {
+      status: 502,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

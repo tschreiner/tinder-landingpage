@@ -52,7 +52,12 @@ function shortenUserAgent(userAgent) {
 }
 
 function formatTime(event) {
-  return typeof event.t === "string" ? event.t.slice(11, 19) : "??:??:??";
+  if (typeof event?.t !== "string") return "??:??:??";
+
+  const parsed = new Date(event.t);
+  if (Number.isNaN(parsed.getTime())) return "??:??:??";
+
+  return parsed.toISOString().slice(11, 19);
 }
 
 function shortenQuestionTitle(title) {
@@ -87,7 +92,7 @@ function compressEvents(events) {
   });
 }
 
-function formatMetadataBlock(metadata, visits) {
+function formatMetadataBlock(metadata = {}, visits = {}) {
   const locationParts = [metadata.city, metadata.region].filter(Boolean);
   let locationLine = locationParts.length > 0 ? locationParts.join(", ") : "unbekannt";
 
@@ -103,12 +108,12 @@ function formatMetadataBlock(metadata, visits) {
     locationLine += ` · ${metadata.latitude}, ${metadata.longitude}`;
   }
 
-  const ipLine = `IP: ${metadata.ip}`;
+  const ipLine = `IP: ${metadata.ip || "unbekannt"}`;
   const coloPart = metadata.colo ? ` · Colo: ${metadata.colo}` : "";
   const uaShort = shortenUserAgent(metadata.userAgent);
 
   let visitsText = "—";
-  if (visits.total !== null && visits.ip !== null) {
+  if (visits.total !== null && visits.total !== undefined && visits.ip !== null && visits.ip !== undefined) {
     visitsText = `${visits.total} gesamt (${visits.ip}× diese IP)`;
   }
 
@@ -169,13 +174,13 @@ function formatTimeline(events) {
   return lines;
 }
 
-export function buildMessage({ name, path, referrer, metadata, visits, events, finished }) {
+export function buildMessage({ name, path, referrer, metadata = {}, visits = {}, events = [], finished }) {
   const status = finished ? "Abgeschlossen" : "Live";
-  const safeName = escapeHtml(name);
-  const safePath = escapeHtml(path);
-  const safeReferrer = escapeHtml(referrer);
-  const envLabel = escapeHtml(metadata.environment?.label || "Dev");
-  const envDetail = escapeHtml(metadata.environment?.detail || "unbekannt");
+  const safeName = escapeHtml(sanitizeText(name, 60) || "unbekannt");
+  const safePath = escapeHtml(sanitizeText(path, 240) || "/");
+  const safeReferrer = escapeHtml(sanitizeText(referrer, 240) || "direkt");
+  const envLabel = escapeHtml(sanitizeText(metadata.environment?.label, 40) || "Dev");
+  const envDetail = sanitizeText(metadata.environment?.detail, 80) || "unbekannt";
   const siteLabel =
     metadata.environment?.label === "Prod" ? "eddydate.com" : `eddydate.com (${envDetail})`;
 
@@ -237,7 +242,8 @@ export async function callTelegram(env, method, payload) {
     return data;
   }
 
-  throw new Error(`Telegram ${method} failed`);
+  const description = typeof data.description === "string" ? `: ${data.description}` : "";
+  throw new Error(`Telegram ${method} failed${description}`);
 }
 
 export function createTimeoutEvent() {

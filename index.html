@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Persoenlichkeitstest</title>
+    <meta
+      name="description"
+      content="Ein nicht ganz ernst gemeinter Persoenlichkeitstest fuer Matches."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Pacifico&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="background-glow glow-a"></div>
+      <div class="background-glow glow-b"></div>
+
+      <main class="phone-frame">
+        <div class="progress-line" aria-hidden="true">
+          <span id="progressBar"></span>
+        </div>
+
+        <section class="card" id="card">
+          <div class="emoji-badge" id="badge">💘</div>
+
+          <p class="eyebrow" id="eyebrow">Persoenlichkeitstest fuer Matches</p>
+          <h1 id="title">Oh hi.</h1>
+          <p class="copy" id="copy">
+            Ein kurzer Test, damit ich weiss, ob du eher Green Flag oder romantische Fehlermeldung bist.
+          </p>
+
+          <div class="options" id="options" aria-live="polite"></div>
+
+          <div class="footer">
+            <button class="primary-button" id="primaryButton" type="button">Okay, ich mach den Test</button>
+            <button class="secondary-button hidden" id="secondaryButton" type="button">Nochmal</button>
+
+            <div class="progress-dots" id="progressDots" aria-label="Fortschritt"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

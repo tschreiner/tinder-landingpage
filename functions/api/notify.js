@@ -57,22 +57,71 @@ function getRequestHost(request) {
   return null;
 }
 
+function parseClientIpFromCf(clientIp) {
+  if (typeof clientIp !== "string" || !clientIp.trim()) return null;
+
+  const ipv6Match = clientIp.match(/\[(?<ip>[^\]]+)\](?::\d+)?$/);
+  if (ipv6Match?.groups?.ip) return ipv6Match.groups.ip;
+
+  const ipv4Match = clientIp.match(/^(?<ip>\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/);
+  if (ipv4Match?.groups?.ip) return ipv4Match.groups.ip;
+
+  const genericV6 = clientIp.match(/\[(?<ip>[^\]]+)\]:\d+/);
+  if (genericV6?.groups?.ip) return genericV6.groups.ip;
+
+  const genericV4 = clientIp.match(/^(?<ip>[^:]+):\d+$/);
+  if (genericV4?.groups?.ip && genericV4.groups.ip.includes(".")) {
+    return genericV4.groups.ip;
+  }
+
+  return clientIp.includes(":") ? null : clientIp;
+}
+
 function getClientIp(request) {
+  const cf = request.cf || {};
+
   return (
     request.headers.get("CF-Connecting-IP") ||
+    request.headers.get("X-Real-IP") ||
+    parseClientIpFromCf(cf.clientIp) ||
     request.headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ||
     "unbekannt"
   );
 }
 
-function getRequestMetadata(request) {
+function getEnvironment(request, env = {}) {
+  const host = getRequestHost(request)?.toLowerCase();
+
+  if (!host || host === "localhost" || host === "127.0.0.1") {
+    return { label: "Dev", detail: "lokal" };
+  }
+
+  if (host === "eddydate.com" || host === "www.eddydate.com") {
+    return { label: "Prod", detail: host };
+  }
+
+  if (host.endsWith(".pages.dev")) {
+    return { label: "Dev", detail: "preview" };
+  }
+
+  const pagesUrl = typeof env.CF_PAGES_URL === "string" ? env.CF_PAGES_URL.toLowerCase() : "";
+  if (pagesUrl.includes(".pages.dev")) {
+    return { label: "Dev", detail: "preview" };
+  }
+
+  return { label: "Dev", detail: host };
+}
+
+function getRequestMetadata(request, env = {}) {
   const cf = request.cf || {};
   const ip = getClientIp(request);
   const userAgent = request.headers.get("User-Agent") || "unbekannt";
+  const environment = getEnvironment(request, env);
 
   return {
     ip,
     userAgent,
+    environment,
     country: cf.country || null,
     region: cf.region || null,
     city: cf.city || null,
@@ -269,10 +318,14 @@ function buildMessage({ name, path, referrer, metadata, visits, events, finished
   const safeName = escapeHtml(name);
   const safePath = escapeHtml(path);
   const safeReferrer = escapeHtml(referrer);
+  const envLabel = escapeHtml(metadata.environment?.label || "Dev");
+  const envDetail = escapeHtml(metadata.environment?.detail || "unbekannt");
+  const siteLabel =
+    metadata.environment?.label === "Prod" ? "eddydate.com" : `eddydate.com (${envDetail})`;
 
   const staticParts = [
-    "<b>Neuer Besuch auf eddydate.com</b>",
-    `<i>${status}</i> · ${safeName} · ${safePath}`,
+    `<b>Neuer Besuch auf ${escapeHtml(siteLabel)}</b>`,
+    `<i>${status}</i> · <b>${envLabel}</b> · ${safeName} · ${safePath}`,
     "",
     "<b>Besucher</b>",
     `Name: ${safeName} · Referrer: ${safeReferrer}`,
@@ -354,7 +407,7 @@ export async function onRequestPost(context) {
   const finished = body.finished === true;
   const messageId = Number.parseInt(body.messageId, 10);
 
-  const metadata = getRequestMetadata(request);
+  const metadata = getRequestMetadata(request, env);
   const isNewSession = !Number.isFinite(messageId);
   const visits = isNewSession
     ? await incrementVisitCount(env, metadata.ip)

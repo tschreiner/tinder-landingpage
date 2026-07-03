@@ -28,6 +28,7 @@ body {
 body {
   min-height: 100vh;
   min-height: 100dvh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top, rgba(120, 24, 88, 0.35), transparent 28%),
     radial-gradient(circle at 20% 80%, rgba(255, 51, 140, 0.14), transparent 26%),
@@ -76,6 +77,8 @@ button {
   min-height: 100dvh;
   display: grid;
   place-items: center;
+  width: min(100%, 28rem);
+  margin: 0 auto;
   padding: 20px;
 }
 
@@ -90,10 +93,24 @@ button {
     linear-gradient(180deg, rgba(58, 25, 48, 0.96), rgba(40, 16, 34, 0.96)),
     linear-gradient(140deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
   box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
   display: flex;
   flex-direction: column;
   text-align: center;
   isolation: isolate;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: auto auto -20% -8%;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 82, 170, 0.22), transparent 68%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .card::-webkit-scrollbar {
@@ -188,6 +205,7 @@ h1 {
     border-color 140ms ease,
     box-shadow 140ms ease,
     background 140ms ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .option:hover {
@@ -233,6 +251,10 @@ h1 {
 .primary-button,
 .secondary-button {
   width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
   border-radius: 999px;
   padding: 1rem 1.2rem;
   border: 1px solid rgba(255, 99, 185, 0.52);
@@ -245,9 +267,11 @@ h1 {
 }
 
 .primary-button {
-  background: linear-gradient(180deg, rgba(255, 73, 166, 0.2), rgba(255, 73, 166, 0.1));
-  color: #ff87cb;
-  box-shadow: 0 0 26px rgba(255, 79, 167, 0.28);
+  background: linear-gradient(180deg, rgba(255, 94, 177, 0.38), rgba(176, 40, 105, 0.3));
+  color: #ffd7ef;
+  box-shadow:
+    0 10px 26px rgba(255, 79, 167, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .primary-button:hover:not(:disabled),
@@ -263,8 +287,28 @@ h1 {
 
 .secondary-button {
   margin-top: 0.8rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.055);
   color: var(--muted);
+}
+
+.primary-button.is-whatsapp {
+  background: linear-gradient(180deg, rgba(45, 199, 117, 0.96), rgba(22, 136, 72, 0.96));
+  border-color: rgba(122, 255, 179, 0.42);
+  color: #f7fff9;
+  box-shadow:
+    0 12px 28px rgba(15, 128, 65, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.primary-button.is-whatsapp::before {
+  content: "";
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23ffffff' d='M19.11 17.34c-.28-.14-1.64-.8-1.89-.89-.25-.09-.43-.14-.61.14-.18.27-.7.89-.86 1.08-.16.18-.32.2-.6.07-.28-.14-1.16-.43-2.21-1.36-.82-.73-1.38-1.63-1.54-1.9-.16-.27-.02-.42.12-.56.12-.12.27-.32.41-.48.14-.16.18-.27.27-.46.09-.18.05-.34-.02-.48-.07-.14-.61-1.47-.84-2.01-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.95.93-.95 2.27 0 1.34.97 2.64 1.11 2.82.14.18 1.91 2.92 4.63 4.09.65.28 1.16.45 1.56.58.66.21 1.26.18 1.74.11.53-.08 1.64-.67 1.87-1.31.23-.64.23-1.18.16-1.3-.07-.11-.25-.18-.52-.32Z'/%3E%3Cpath fill='%23ffffff' d='M16.03 3.2c-6.93 0-12.56 5.62-12.56 12.54 0 2.21.58 4.37 1.68 6.27L3.2 28.8l6.99-1.83a12.6 12.6 0 0 0 5.84 1.49h.01c6.92 0 12.56-5.62 12.56-12.54 0-3.35-1.31-6.5-3.68-8.86A12.47 12.47 0 0 0 16.03 3.2Zm0 22.99h-.01a10.4 10.4 0 0 1-5.3-1.45l-.38-.22-4.15 1.09 1.11-4.04-.25-.42a10.32 10.32 0 0 1-1.59-5.48c0-5.72 4.67-10.37 10.41-10.37 2.78 0 5.39 1.08 7.35 3.03a10.28 10.28 0 0 1 3.05 7.34c0 5.72-4.68 10.37-10.24 10.52Z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
 }
 
 .hidden {
@@ -338,16 +382,28 @@ h1 {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    width: 100%;
     padding: 8px;
   }
 
   .card {
     width: 100%;
-    min-height: auto;
+    min-height: calc(100dvh - 16px);
     max-height: calc(100dvh - 16px);
     padding: 1.15rem 0.95rem 1rem;
     border-radius: 28px;
     overflow: auto;
+  }
+
+  .card[data-mode="intro"] {
+    min-height: auto;
+    margin-top: 1.15rem;
+  }
+
+  .card[data-mode="question"],
+  .card[data-mode="result"],
+  .card[data-mode="result-rejection"] {
+    justify-content: flex-start;
   }
 
   .option-label {
@@ -386,9 +442,16 @@ h1 {
     margin-top: 1.3rem;
   }
 
+  .card[data-mode="question"] .options,
+  .card[data-mode="result"] .options,
+  .card[data-mode="result-rejection"] .options {
+    flex: 1 1 auto;
+  }
+
   .option {
     gap: 0.8rem;
     padding: 0.95rem 0.9rem;
+    border-radius: 18px;
   }
 
   .option-bullet {
@@ -399,6 +462,18 @@ h1 {
 
   .footer {
     padding-top: 1.15rem;
+  }
+
+  .card[data-mode="question"] .footer,
+  .card[data-mode="result"] .footer,
+  .card[data-mode="result-rejection"] .footer {
+    position: sticky;
+    bottom: -1rem;
+    margin-inline: -0.95rem;
+    padding: 1rem 0.95rem calc(0.35rem + env(safe-area-inset-bottom));
+    background:
+      linear-gradient(180deg, rgba(45, 17, 37, 0), rgba(45, 17, 37, 0.84) 25%, rgba(45, 17, 37, 0.98) 56%);
+    backdrop-filter: blur(10px);
   }
 
   .primary-button,

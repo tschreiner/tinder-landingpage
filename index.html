@@ -8,6 +8,16 @@
       name="description"
       content="Ein nicht ganz ernst gemeinter Persoenlichkeitstest fuer Matches."
     />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5YLD0LB28R"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-5YLD0LB28R");
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -39,7 +49,6 @@
 
           <div class="footer">
             <button class="primary-button" id="primaryButton" type="button">Okay, ich mach den Test</button>
-            <button class="secondary-button hidden" id="secondaryButton" type="button">Nochmal</button>
 
             <div class="progress-dots" id="progressDots" aria-label="Fortschritt"></div>
           </div>

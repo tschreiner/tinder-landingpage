@@ -120,9 +120,9 @@ const outcomes = {
     title: "Green Flag Deluxe",
     copy: "Du wirkst verdammt angenehm. Fast verdaechtig angenehm. Mit dir kann man vermutlich wirklich reden, lachen und puenktlich irgendwo auftauchen. Das ist in dieser Wirtschaft selten.",
     meta: "Diagnose: sicher flirtbar, minimal gefaehrlich, ueberdurchschnittlich date-tauglich.",
-    primaryLabel: "Belohnung: Du schuldest mir einen Kaffee",
+    primaryLabel: "Auf WhatsApp schreiben",
     secondaryLabel: "Nochmal spielen und etwas toxischer antworten",
-    shareText: "Testergebnis: Green Flag Deluxe. Offiziell date-tauglich. Ich finde, das verpflichtet uns fast zu einem Kaffee."
+    shareText: "Hi, ich habe gerade den Persoenlichkeitstest gemacht. Ergebnis: Green Flag Deluxe. Ich glaube, wir sollten das bei einem Kaffee ueberpruefen 😄"
   },
   chaos: {
     badge: "🔥",
@@ -130,9 +130,9 @@ const outcomes = {
     title: "Charmantes Problem",
     copy: "Du hast Energie von 'koennte mein Lieblingsmensch werden' gemischt mit 'ich sollte vielleicht einen Helm tragen'. Genau die Art Risiko, die noch Spass macht.",
     meta: "Diagnose: leicht chaotisch, sehr unterhaltsam, mit hohem Wiedersehen-Potenzial.",
-    primaryLabel: "Okay, wir testen das bei einem Drink",
+    primaryLabel: "Auf WhatsApp schreiben",
     secondaryLabel: "Test wiederholen und unschuldiger wirken",
-    shareText: "Testergebnis: Charmantes Problem. Riskant, aber auf die gute Art. Ich wuerde sagen, das pruefen wir bei einem Drink."
+    shareText: "Hi, ich habe gerade den Persoenlichkeitstest gemacht. Ergebnis: Charmantes Problem. Klingt riskant genug, um spannend zu sein 😄"
   },
   disaster: {
     badge: "🚨",
@@ -140,9 +140,9 @@ const outcomes = {
     title: "Certified Disaster mit Potenzial",
     copy: "Du bist nicht unbedingt eine Red Flag. Eher eine ganze Leuchtreklame mit guter Playlist. Das ist objektiv kompliziert, aber leider auch ein bisschen interessant.",
     meta: "Diagnose: emotional leicht brennbar, trotzdem schwer ignorierbar.",
-    primaryLabel: "Ich nehme das Risiko. Erzaehl mir mehr.",
+    primaryLabel: "Auf WhatsApp schreiben",
     secondaryLabel: "Nochmal spielen und diesmal weniger ehrlich sein",
-    shareText: "Testergebnis: Certified Disaster mit Potenzial. Fragwuerdig, aber faszinierend. Leider bin ich noch interessiert."
+    shareText: "Hi, ich habe gerade den Persoenlichkeitstest gemacht. Ergebnis: Certified Disaster mit Potenzial. Ich bin leicht besorgt, aber trotzdem interessiert 😄"
   },
   rejection: {
     badge: "💔",
@@ -162,13 +162,18 @@ const state = {
   resultKey: null
 };
 
+const WHATSAPP_NUMBER = "491706873202";
+const TRACKING_ID = "G-5YLD0LB28R";
+let lastTrackedView = "";
+let hasTrackedQuizStart = false;
+let hasTrackedCompletion = false;
+
 const titleEl = document.getElementById("title");
 const eyebrowEl = document.getElementById("eyebrow");
 const copyEl = document.getElementById("copy");
 const badgeEl = document.getElementById("badge");
 const optionsEl = document.getElementById("options");
 const primaryButton = document.getElementById("primaryButton");
-const secondaryButton = document.getElementById("secondaryButton");
 const progressBar = document.getElementById("progressBar");
 const progressDots = document.getElementById("progressDots");
 const card = document.getElementById("card");
@@ -209,6 +214,67 @@ function computeResult() {
   return "chaos";
 }
 
+function getScoreTotals() {
+  return state.answers.reduce(
+    (sum, answer) => ({
+      green: sum.green + answer.green,
+      chaos: sum.chaos + answer.chaos,
+      disaster: sum.disaster + answer.disaster
+    }),
+    { green: 0, chaos: 0, disaster: 0 }
+  );
+}
+
+function trackEvent(eventName, params = {}) {
+  if (typeof window.gtag !== "function") return;
+
+  window.gtag("event", eventName, {
+    send_to: TRACKING_ID,
+    ...params
+  });
+}
+
+function trackView() {
+  const step = steps[state.currentStep];
+  const isResult = state.currentStep >= steps.length;
+  const viewKey = isResult ? `result:${state.resultKey}` : `${step.type}:${state.currentStep}`;
+
+  if (viewKey === lastTrackedView) return;
+  lastTrackedView = viewKey;
+
+  if (isResult) {
+    const totals = getScoreTotals();
+    trackEvent("result_view", {
+      result_key: state.resultKey,
+      total_green: totals.green,
+      total_chaos: totals.chaos,
+      total_disaster: totals.disaster,
+      answered_questions: state.answers.length
+    });
+
+    if (!hasTrackedCompletion) {
+      hasTrackedCompletion = true;
+      trackEvent("quiz_completed", {
+        result_key: state.resultKey,
+        answered_questions: state.answers.length
+      });
+    }
+    return;
+  }
+
+  if (step.type === "intro") {
+    trackEvent("intro_view", {
+      step_index: state.currentStep
+    });
+    return;
+  }
+
+  trackEvent("question_view", {
+    question_index: state.currentStep,
+    question_title: step.title
+  });
+}
+
 function getProgressValue() {
   if (state.currentStep === 0) return 20;
   if (state.currentStep >= steps.length) return 100;
@@ -246,6 +312,12 @@ function renderOptions(step) {
 
     button.addEventListener("click", () => {
       state.selectedOption = index;
+      trackEvent("answer_selected", {
+        question_index: state.currentStep,
+        question_title: step.title,
+        answer_index: index,
+        answer_text: option.text
+      });
       render();
     });
 
@@ -255,6 +327,7 @@ function renderOptions(step) {
 
 function renderResult() {
   const result = outcomes[state.resultKey];
+  card.dataset.mode = state.resultKey === "rejection" ? "result-rejection" : "result";
 
   badgeEl.textContent = result.badge;
   eyebrowEl.textContent = result.eyebrow;
@@ -263,12 +336,12 @@ function renderResult() {
   optionsEl.innerHTML = `<div class="result-meta">${result.meta}</div>`;
   primaryButton.textContent = result.primaryLabel;
   primaryButton.disabled = false;
-  secondaryButton.textContent = result.secondaryLabel;
-  secondaryButton.classList.remove("hidden");
+  primaryButton.classList.toggle("is-whatsapp", state.resultKey !== "rejection");
 }
 
 function renderStep() {
   const step = steps[state.currentStep];
+  card.dataset.mode = step.type;
 
   badgeEl.textContent = step.badge;
   eyebrowEl.textContent = step.eyebrow;
@@ -276,7 +349,7 @@ function renderStep() {
   copyEl.textContent = step.copy;
   primaryButton.textContent = step.primaryLabel;
   primaryButton.disabled = step.type === "question" && state.selectedOption === null;
-  secondaryButton.classList.add("hidden");
+  primaryButton.classList.remove("is-whatsapp");
 
   renderOptions(step);
 }
@@ -291,32 +364,40 @@ function render() {
 
   if (state.currentStep >= steps.length) {
     renderResult();
+    trackView();
     return;
   }
 
   renderStep();
+  trackView();
 }
 
-async function copyResultCallToAction() {
+function openResultWhatsApp() {
   const result = outcomes[state.resultKey];
   if (!result?.shareText) return;
 
-  const originalLabel = result.primaryLabel;
-
-  try {
-    await navigator.clipboard.writeText(result.shareText);
-    primaryButton.textContent = "Text fuer Match kopiert";
-  } catch {
-    primaryButton.textContent = "Kopieren nicht erlaubt";
-  }
-
-  window.setTimeout(() => {
-    primaryButton.textContent = originalLabel;
-  }, 1500);
+  const text = encodeURIComponent(result.shareText);
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+  trackEvent("whatsapp_cta_click", {
+    result_key: state.resultKey,
+    destination: "whatsapp",
+    phone_suffix: WHATSAPP_NUMBER.slice(-4)
+  });
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 function goToNextStep() {
   if (state.currentStep === 0) {
+    if (!hasTrackedQuizStart) {
+      hasTrackedQuizStart = true;
+      trackEvent("quiz_started", {
+        total_questions: steps.filter((step) => step.type === "question").length
+      });
+    }
+
+    trackEvent("intro_cta_click", {
+      cta_label: steps[0].primaryLabel
+    });
     state.currentStep += 1;
     state.selectedOption = null;
     render();
@@ -339,12 +420,7 @@ function goToNextStep() {
     return;
   }
 
-  if (state.resultKey === "rejection") {
-    resetFlow();
-    return;
-  }
-
-  void copyResultCallToAction();
+  openResultWhatsApp();
 }
 
 function resetFlow() {
@@ -352,10 +428,12 @@ function resetFlow() {
   state.answers = [];
   state.selectedOption = null;
   state.resultKey = null;
+  lastTrackedView = "";
+  hasTrackedQuizStart = false;
+  hasTrackedCompletion = false;
   render();
 }
 
 primaryButton.addEventListener("click", goToNextStep);
-secondaryButton.addEventListener("click", resetFlow);
 
 render();

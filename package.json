@@ -10,6 +10,6 @@
     "test:session-timeout": "node workers/test-session-timeout.mjs"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.114.0"
   }
 }
